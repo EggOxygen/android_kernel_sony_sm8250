@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include "adreno.h"
@@ -388,15 +388,10 @@ void a6xx_preemption_trigger(struct adreno_device *adreno_dev)
 
 	return;
 err:
-	/* If fenced write fails, take inline snapshot and trigger recovery */
-	if (!in_interrupt()) {
-		gmu_core_snapshot(device);
-		adreno_set_gpu_fault(adreno_dev,
-			ADRENO_GMU_FAULT_SKIP_SNAPSHOT);
-	} else {
-		adreno_set_gpu_fault(adreno_dev, ADRENO_GMU_FAULT);
-	}
+
+	/* If fenced write fails, set the fault and trigger recovery */
 	adreno_set_preempt_state(adreno_dev, ADRENO_PREEMPT_NONE);
+	adreno_set_gpu_fault(adreno_dev, ADRENO_GMU_FAULT);
 	adreno_dispatcher_schedule(device);
 	/* Clear the keep alive */
 	if (gmu_core_isenabled(device))
@@ -771,7 +766,7 @@ void a6xx_preemption_context_destroy(struct kgsl_context *context)
 	gpumem_free_entry(context->user_ctxt_record);
 
 	/* Put the extra ref from gpumem_alloc_entry() */
-	kgsl_mem_entry_put_deferred(context->user_ctxt_record);
+	kgsl_mem_entry_put(context->user_ctxt_record);
 }
 
 int a6xx_preemption_context_init(struct kgsl_context *context)

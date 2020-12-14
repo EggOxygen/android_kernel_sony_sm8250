@@ -17,6 +17,11 @@
  * Author:  Andrew Christian
  *          28 May 2002
  */
+/*
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are Copyright (c) 2016 Sony Mobile Communications Inc,
+ * and licensed under the license of the file.
+ */
 #include <linux/moduleparam.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -1541,10 +1546,10 @@ void mmc_blk_cqe_recovery(struct mmc_queue *mq)
 	pr_debug("%s: CQE recovery start\n", mmc_hostname(host));
 
 	err = mmc_cqe_recovery(host);
-	if (err || host->need_hw_reset)
+	if (err)
 		mmc_blk_reset(mq->blkdata, host, MMC_BLK_CQE_RECOVERY);
-	mmc_blk_reset_success(mq->blkdata, MMC_BLK_CQE_RECOVERY);
-	host->need_hw_reset = false;
+	else
+		mmc_blk_reset_success(mq->blkdata, MMC_BLK_CQE_RECOVERY);
 
 	pr_debug("%s: CQE recovery done\n", mmc_hostname(host));
 }
@@ -1606,8 +1611,6 @@ static int mmc_blk_cqe_issue_flush(struct mmc_queue *mq, struct request *req)
 static int mmc_blk_cqe_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 {
 	struct mmc_queue_req *mqrq = req_to_mmc_queue_req(req);
-	struct mmc_card *card = mq->card;
-	struct mmc_host *host = card->host;
 	int err = 0;
 
 	mmc_blk_data_prep(mq, mqrq, 0, NULL, NULL);
@@ -1615,27 +1618,9 @@ static int mmc_blk_cqe_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 
 	mmc_deferred_scaling(mq->card->host);
 	mmc_cqe_clk_scaling_start_busy(mq, mq->card->host, true);
-	/*
-	 * When voltage corner in LSVS on low load scenario and
-	 * there is sudden burst of requests device queue all
-	 * slots are filled and it is needed to wait till all
-	 * requests are completed to scale up frequency. This
-	 * is leading to delay in scaling and impacting performance.
-	 * Fix this issue by only allowing one request in request queue
-	 * when device is running with lower speed mode.
-	 */
-	if (host->clk_scaling.state == MMC_LOAD_LOW) {
-		err = host->cqe_ops->cqe_wait_for_idle(host);
-		if (err) {
-			pr_err("%s: %s: CQE went in recovery path.\n",
-				mmc_hostname(host), __func__);
-			goto stop_scaling;
-		}
-	}
 
 	err =  mmc_blk_cqe_start_req(mq->card->host, &mqrq->brq.mrq);
 
-stop_scaling:
 	if (err)
 		mmc_cqe_clk_scaling_stop_busy(mq->card->host, true, false);
 
@@ -3040,7 +3025,12 @@ static int mmc_blk_probe(struct mmc_card *card)
 	/* Add two debugfs entries */
 	mmc_blk_add_debugfs(card, md);
 
-	pm_runtime_set_autosuspend_delay(&card->dev, 3000);
+	if (mmc_card_sd(card))
+		pm_runtime_set_autosuspend_delay(&card->dev,
+			MMC_SDCARD_AUTOSUSPEND_DELAY_MS);
+	else
+		pm_runtime_set_autosuspend_delay(&card->dev, 3000);
+
 	pm_runtime_use_autosuspend(&card->dev);
 
 	/*
