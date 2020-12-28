@@ -13,12 +13,18 @@ DEFCONFIG=kona-bbn_defconfig
 # export KBUILD_DIFFCONFIG=pdx203_j_diffconfig
 export PATH=${CLANG_PATH}:${PATH}
 
-make -j16 -C $(pwd) O=$(pwd)/out ARCH=arm64 \
-    CC=clang CLANG_TRIPLE=aarch64-linux-gnu- \
-    CROSS_COMPILE=$BUILD_CROSS_COMPILE $DEFCONFIG
+if [[ -n "$1" ]]
+then
+    make -j16 -C $(pwd) O=$(pwd)/out ARCH=arm64 \
+        CC=clang CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=$BUILD_CROSS_COMPILE $1
+else
+    make -j16 -C $(pwd) O=$(pwd)/out ARCH=arm64 \
+        CC=clang CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=$BUILD_CROSS_COMPILE ${DEFCONFIG}
 
- make -j16 -C $(pwd) O=$(pwd)/out ARCH=arm64 \
-     CC=clang CLANG_TRIPLE=aarch64-linux-gnu- \
-     CROSS_COMPILE=$BUILD_CROSS_COMPILE 2>&1 | tee build.txt
- 
-cp out/arch/arm64/boot/Image $(pwd)/boot.img-zImage
+    make -j16 -C $(pwd) O=$(pwd)/out ARCH=arm64 \
+        CC=clang CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=$BUILD_CROSS_COMPILE 2>&1 | tee build.txt
+fi 
+# cp out/arch/arm64/boot/Image $(pwd)/boot.img-zImage
