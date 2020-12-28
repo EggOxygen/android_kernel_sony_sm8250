@@ -56,7 +56,6 @@
 
 		qcom,mdss-dsi-display-timings {
 			timing@0 {
-				qcom,mdss-dsi-timing-default;
 				qcom,mdss-dsi-panel-width = <1096>;
 				qcom,mdss-dsi-panel-height = <2560>;
 				qcom,mdss-dsi-h-back-porch = <8>;
@@ -183,6 +182,7 @@
 				qcom,mdss-dsi-nolp-command-state = "dsi_lp_mode";
 			};
 			timing@1 {
+				qcom,mdss-dsi-timing-default;
 				qcom,mdss-dsi-panel-width = <1644>;
 				qcom,mdss-dsi-panel-height = <3840>;
 				qcom,mdss-dsi-h-back-porch = <8>;
